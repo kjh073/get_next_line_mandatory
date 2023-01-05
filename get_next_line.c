@@ -6,7 +6,7 @@
 /*   By: jooheekim <jooheekim@student.42.fr>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/16 15:26:50 by joohekim          #+#    #+#             */
-/*   Updated: 2023/01/06 01:11:27 by jooheekim        ###   ########.fr       */
+/*   Updated: 2023/01/06 04:39:09 by jooheekim        ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,33 +27,33 @@ static int	check_nl(char *backup)
 	return (-1);
 }
 
-static char	*read_line(int fd, char **backup, int *cnt)
+static char	*read_line(int fd, char **backup, int *cnt, char **buf)
 {
-	char	buf[BUFFER_SIZE + 1];
 	char	*temp;
 
-	buf[0] = '\0';
-	if (*backup[0] == '\0')
+	*buf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	if (*buf == NULL)
+		return (NULL);
+	(*buf)[0] = '\0';
+	while (1)
 	{
-		*cnt = read(fd, buf, BUFFER_SIZE);
+		*cnt = read(fd, *buf, BUFFER_SIZE);
 		if (*cnt == 0)
+			break ;
+		if (*cnt == -1)
 			return (NULL);
-	}
-	while (*cnt > -1)
-	{
-		if (*cnt == 0)
-			return (*backup);
-		buf[*cnt] = '\0';
-		temp = ft_strjoin(*backup, buf);
+		(*buf)[*cnt] = '\0';
+		temp = ft_strjoin(*backup, *buf);
 		if (temp == NULL)
 			return (NULL);
 		free(*backup);
 		*backup = temp;
 		if (check_nl(*backup) != -1)
 			return (*backup);
-		*cnt = read(fd, buf, BUFFER_SIZE);
 	}
-	return (NULL);
+	if ((*backup)[0] == '\0')
+		return (NULL);
+	return (*backup);
 }
 
 static char	*substr_line(char **backup, int idx)
@@ -74,7 +74,7 @@ static char	*substr_line(char **backup, int idx)
 	}
 	free(*backup);
 	*backup = ft_strdup(temp);
-	if ((*backup) == NULL)
+	if (*backup == NULL)
 	{
 		null_free(&line);
 		null_free(&temp);
@@ -96,7 +96,7 @@ static char	*return_line(char **backup, int *cnt)
 		null_free(backup);
 		return (NULL);
 	}
-	if (*cnt == 0)
+	if (*cnt == 0 && i == -1)
 	{
 		line = ft_strdup(line);
 		if (line == NULL)
@@ -114,26 +114,26 @@ char	*get_next_line(int fd)
 	static char	*backup;
 	char		*line;
 	int			cnt;
+	char		*buf;
 
+	cnt = 1;
 	if (fd < 0)
 		return (NULL);
-	cnt = 1;
 	if (backup == NULL)
 	{
 		backup = ft_strdup("");
 		if (backup == NULL)
 			return (NULL);
 	}
-	if (!read_line(fd, &backup, &cnt))
+	if (!read_line(fd, &backup, &cnt, &buf))
 	{
 		null_free(&backup);
+		null_free(&buf);
 		return (NULL);
 	}
+	null_free(&buf);
 	line = return_line(&backup, &cnt);
 	if (line == NULL)
-	{
-		null_free(&backup);
 		return (NULL);
-	}
 	return (line);
 }
